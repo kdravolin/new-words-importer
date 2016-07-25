@@ -29,7 +29,7 @@ class Lingualeo:
         }
         self.get_content(url, values)
 
-    def get_translates(self, word):
+    def get_translates(self, word, use_base_form=True):
         url = "http://api.lingualeo.com/gettranslates?word=" + urllib.parse.quote_plus(word)
 
         try:
@@ -39,6 +39,14 @@ class Lingualeo:
                 return None
 
             first_translate = result["translate"][0]
+
+            if result["word_forms"] and use_base_form:
+                word_form = result["word_forms"][0]['word']
+
+                if word_form != word:
+                    print("Using base form of word '{}': {}".format(word, word_form))
+                    return self.get_translates(word_form)
+
             return {
                 "is_exist": first_translate["is_user"],
                 "word": word,
@@ -82,12 +90,13 @@ lingualeo.auth()
 
 for index, word in enumerate(word_handler.words):
     translate = lingualeo.get_translates(word)
-    progress = index / len(word_handler.words) * 100.0
+    progress = index / len(word_handler.words)
+    word = translate["word"]
 
     if not translate:
-        print("{}% | Translate doesn't exist: {}".format(progress, word))
+        print("{:.2%} | Translate doesn't exist: {}".format(progress, word))
     elif translate["is_exist"]:
-        print("{}% | Already exists: {}".format(progress, word))
+        print("{:.2%} | Already exists: {}".format(progress, word))
     else:
         lingualeo.add_word(word, translate["tword"])
-        print("{}% | Add word: {}".format(progress, word))
+        print("{:.2%} | Add word: {}".format(progress, word))
